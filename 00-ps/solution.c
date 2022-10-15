@@ -5,6 +5,7 @@
 #include <dirent.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 #include <errno.h>
 
 #define ARG_MAX 2097152
@@ -34,7 +35,6 @@ ssize_t read_file(const char *path, char **result){
         return -1;
     }
 
-    *result = (char *)calloc(ARG_MAX, sizeof(char));
     if ((*result) == NULL){
         close(fd);
     }
@@ -81,6 +81,8 @@ void ps(void)
     }
 
     struct dirent *dir_entry = NULL;
+    char **argv = (char **)malloc(ARG_MAX * sizeof(char *));
+    char **envp = (char **)malloc(ARG_MAX * sizeof(char *));
     errno = 0;
 
     while((dir_entry = readdir(dir)) != NULL){
@@ -94,8 +96,6 @@ void ps(void)
         char cmdline_path[PATH_SIZE] = { -1};
 
         char result_exe_path[PATH_SIZE] = {-1};
-        char **argv = calloc(ARG_MAX, sizeof(char));
-        char **envp = calloc(ARG_MAX, sizeof(char));
 
         create_path(pid, exe_path, "exe");
         create_path(pid, environ_path, "environ");
@@ -107,30 +107,32 @@ void ps(void)
             continue;
         }
 
-        char *args_from_file = NULL;
+        char *args_from_file = (char *)calloc(ARG_MAX, sizeof(char));;
         ssize_t args_size = read_file(cmdline_path, &args_from_file);
         if (args_size < 0){
             report_error(cmdline_path, errno);
             continue;
         }
+        memset(argv, 0, ARG_MAX * sizeof(char*));
         construct_list_of_strings(argv, args_from_file, args_size);
 
-        char* envs_from_file = NULL;
+        char* envs_from_file = (char *)calloc(ARG_MAX, sizeof(char));;
         ssize_t envs_size = read_file(environ_path, &envs_from_file);
         if (envs_size < 0){
             report_error(environ_path, errno);
             continue;
         }
+        memset(envp, 0, ARG_MAX * sizeof(char*));
         construct_list_of_strings(envp, envs_from_file, envs_size);
 
         report_process(pid, result_exe_path, argv, envp);
 
         free(args_from_file);
         free(envs_from_file);
-        free(argv);
-        free(envp);
     }
 
+    free(argv);
+    free(envp);
     closedir(dir);
     return;
 }
