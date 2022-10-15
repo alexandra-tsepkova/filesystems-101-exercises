@@ -50,7 +50,7 @@ ssize_t read_file(const char *path, char **result){
 }
 
 void construct_list_of_strings(char **argv, char* buf, ssize_t buf_size){
-    int argc = 0, count = 0;
+    int argc = 0;
     ssize_t i;
     for (i = 0; i < buf_size; i++){
         if(buf[i] == '\0'){
@@ -68,7 +68,6 @@ void construct_list_of_strings(char **argv, char* buf, ssize_t buf_size){
         }
         cur++;
     }
-    return argc;
 }
 
 void ps(void)
@@ -127,11 +126,10 @@ void ps(void)
 
         free(args_from_file);
         free(envs_from_file);
+        free(argv);
+        free(envp);
     }
 
-
-    free(argv);
-    free(envp);
     closedir(dir);
     return;
 }
