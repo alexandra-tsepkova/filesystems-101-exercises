@@ -5,7 +5,7 @@
 #include <string.h>
 #include <errno.h>
 
-#define PATH_SIZE 1024
+#define PATH_SIZE 4096
 
 int get_num(const char* str){
     if (str == NULL){
