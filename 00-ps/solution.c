@@ -11,7 +11,7 @@
 #define PATH_SIZE 256
 
 pid_t get_pid(const char* str){
-    if (!str){
+    if (str == NULL){
         return -1;
     }
     char* endptr = NULL;
@@ -35,7 +35,7 @@ ssize_t read_file(const char *path, char **result){
     }
 
     *result = (char *)calloc(ARG_MAX, sizeof(char));
-    if (!(*result)){
+    if ((*result) == NULL){
         close(fd);
     }
 
@@ -72,10 +72,10 @@ void construct_list_of_strings(char **argv, char* buf, ssize_t buf_size){
 
 void ps(void)
 {
-    DIR *dir;
+    DIR* dir = NULL;
     dir = opendir("/proc");
 
-    if (!dir){
+    if (dir == NULL){
         report_error("/proc", errno);
         return;
     }
@@ -88,13 +88,14 @@ void ps(void)
         if (pid == -1){
             continue;
         }
-        char exe_path[PATH_SIZE];
-        char environ_path[PATH_SIZE];
-        char cmdline_path[PATH_SIZE];
 
-        char result_exe_path[PATH_SIZE];
-        char **argv = (char**)calloc(ARG_MAX, sizeof(char));
-        char **envp = (char**)calloc(ARG_MAX, sizeof(char));
+        char exe_path[PATH_SIZE] = {-1};
+        char environ_path[PATH_SIZE] = {-1};
+        char cmdline_path[PATH_SIZE] = { -1};
+
+        char result_exe_path[PATH_SIZE] = {-1};
+        char **argv = calloc(ARG_MAX, sizeof(char));
+        char **envp = calloc(ARG_MAX, sizeof(char));
 
         create_path(pid, exe_path, "exe");
         create_path(pid, environ_path, "environ");
