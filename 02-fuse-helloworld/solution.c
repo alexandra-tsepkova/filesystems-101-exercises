@@ -159,6 +159,24 @@ static int hellofs_write_buf(const char *path, struct fuse_bufvec *buf, off_t of
     return -EROFS;
 }
 
+int hellofs_setxattr (const char *path, const char *name, const char *value, size_t size, int flags){
+    (void)path;
+    (void)name;
+    (void)value;
+    (void)size;
+    (void)flags;
+
+    return -EROFS;
+}
+
+int hellofs_removexattr (const char *path, const char *name){
+    (void)path;
+    (void)name;
+
+    return -EROFS;
+}
+
+
 static const struct fuse_operations hellofs_ops = {
         .init = hellofs_init,
         .getattr = hellofs_getattr,
@@ -173,7 +191,9 @@ static const struct fuse_operations hellofs_ops = {
         .truncate = hellofs_truncate,
         .write = hellofs_write,
         .create = hellofs_create,
-        .write_buf = hellofs_write_buf
+        .write_buf = hellofs_write_buf,
+        .setxattr = hellofs_setxattr,
+        .removexattr = hellofs_removexattr
 };
 
 int helloworld(const char *mntp)
