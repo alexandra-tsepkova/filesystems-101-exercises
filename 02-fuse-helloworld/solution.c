@@ -60,16 +60,16 @@ static int hellofs_readdir(const char *path, void *buf, fuse_fill_dir_t filler, 
 
 static int hellofs_open(const char *path, struct fuse_file_info *fi)
 {
-    (void)fi;
     if (strcmp(path, "/") == 0) {
         return -EISDIR;
     }
-    else if (strcmp(path, "hello")){
+    if ((fi->flags & O_WRONLY) || (fi->flags & O_RDWR)){  // set restriction to readonly
+        return -EROFS;
+    }
+    if (strcmp(path, "hello")){
         return 0;
     }
-    else{
-        return -ENOENT;
-    }
+    return -ENOENT;
 }
 
 static int hellofs_read(const char *path, char *buf, size_t size, off_t off, struct fuse_file_info *fi){
