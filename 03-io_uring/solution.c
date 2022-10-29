@@ -37,7 +37,8 @@ static int setup(struct io_uring *ring)
     return 0;
 }
 
-static int read_queue(struct io_uring *ring, struct io_data *data, int fd, int offset, off_t size){
+static int read_queue(struct io_uring *ring, int fd, int offset, off_t size){
+    struct io_data *data = {0};
     struct io_uring_sqe *sqe;
 
     sqe = io_uring_get_sqe(ring);
@@ -82,7 +83,6 @@ int copy(int in, int out)
     (void) out;
     struct io_uring ring;
     off_t in_size;
-    struct io_data *data = {0};
 
     int ret = 0;
 
@@ -104,9 +104,8 @@ int copy(int in, int out)
         else if (in_size == 0) {
             break;
         }
-        ret = read_queue(&ring, data,in, offset, size);
+        ret = read_queue(&ring,in, offset, size);
         if (ret != 0) {
-            free(data);
             return ret;
         }
 
@@ -116,15 +115,16 @@ int copy(int in, int out)
 
     ret = io_uring_submit(&ring);
     if (ret < 0) {
-        free(data);
         return ret; // in this case ret is set to -errno
     }
 
+    int writes_left = ret;
     int pending = ret;
 
     struct io_uring_cqe *cqe;
 
-    while (pending > 0){
+    while ((writes_left > 0) || (offset < file_size) || (pending > 0)){
+        struct io_data *data = {0};
 
         int ret = io_uring_wait_cqe(&ring, &cqe);
         if(ret < 0){
@@ -133,7 +133,6 @@ int copy(int in, int out)
         }
 
         data = io_uring_cqe_get_data(cqe);
-
         io_uring_cqe_seen(&ring, cqe);
         int len_read = cqe->res;
         if (len_read < 0){
@@ -146,20 +145,17 @@ int copy(int in, int out)
         if (data->read == 0){
 
             if (offset >= file_size){
+                free(data);
                 continue;
             }
             else{
-//                if ((file_size - offset < BS)) {
-//                    size = file_size - offset;
-//                }
-
-                ret = read_queue(&ring, data, in, offset, size);
+                ret = read_queue(&ring,  in, offset, size);
                 if (ret != 0) {
                     free(data);
                     return ret;
                 }
-
                 pending++;
+                writes_left++;
                 ret = io_uring_submit(&ring);
                 if(ret < 0){
                     free(data);
@@ -172,18 +168,18 @@ int copy(int in, int out)
                     break;
                 }
             }
+            free(data);
         }
         else {
+            pending++;
+            writes_left--;
             ret = write_queue(&ring, len_read, data, out);
             if (ret != 0) {
                 free(data);
                 return ret;
             }
-
-            pending++;
-        }
+       }
     }
-    free(data);
     io_uring_queue_exit(&ring);
     return 0;
 }
