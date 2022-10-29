@@ -44,6 +44,9 @@ static int read_queue(struct io_uring *ring, struct io_data *data, int fd, int o
     if (!sqe){
         return 1;
     }
+    data = malloc(size + sizeof(*data));
+    if (!data)
+        return 1;
 
     data->read = 1;
     data->offset = offset;
@@ -79,21 +82,15 @@ int copy(int in, int out)
     (void) out;
     struct io_uring ring;
     off_t in_size;
-    struct io_data *data;
-
-    data = malloc(BS + sizeof(*data));
-    if (!data)
-        return 1;
+    struct io_data *data = {0};
 
     int ret = 0;
 
     if (get_file_size(in, &in_size) == 1){
-        free(data);
         return -errno;
     }
 
     if (setup(&ring) == 1){
-        free(data);
         return -errno;
     }
     const off_t file_size = in_size;
@@ -107,7 +104,7 @@ int copy(int in, int out)
         else if (in_size == 0) {
             break;
         }
-        ret = read_queue(&ring, data, in, offset, size);
+        ret = read_queue(&ring, data,in, offset, size);
         if (ret != 0) {
             free(data);
             return ret;
@@ -128,7 +125,6 @@ int copy(int in, int out)
     struct io_uring_cqe *cqe;
 
     while (pending > 0){
-        struct io_data *data = {0};
 
         int ret = io_uring_wait_cqe(&ring, &cqe);
         if(ret < 0){
@@ -157,7 +153,7 @@ int copy(int in, int out)
 //                    size = file_size - offset;
 //                }
 
-                ret = read_queue(&ring, data,in, offset, size);
+                ret = read_queue(&ring, data, in, offset, size);
                 if (ret != 0) {
                     free(data);
                     return ret;
