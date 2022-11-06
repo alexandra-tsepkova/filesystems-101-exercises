@@ -9,10 +9,13 @@ static int read_direct_block(int img, unsigned block_size, unsigned block_nr){
     struct ext2_dir_entry_2 dir_entry;
     off_t beginning_offset = block_size * block_nr;
     off_t current_offset = block_size * block_nr;
-    while((current_offset < beginning_offset + block_size) && dir_entry.inode != 0){
+    while(current_offset < beginning_offset + block_size){
         int res = pread(img, &dir_entry, sizeof(dir_entry), current_offset);
         if (res < 0){
             return -errno;
+        }
+        if(dir_entry.inode == 0){
+            break;
         }
         char type;
         if (dir_entry.file_type == EXT2_FT_REG_FILE) type = 'f';
