@@ -25,7 +25,7 @@ static int read_direct_block(int img, unsigned block_size, unsigned block_nr){
         char *name = {0};
         name = calloc(256, sizeof(char));
         memset(name, '\0', 256 * sizeof(char));
-        sprintf(name, "%s", dir_entry.name);
+        snprintf(name, dir_entry.name_len + 1, "%s", dir_entry.name);
 
 //        printf("inode: %u, type: %c, name: %s, len: %u\n", dir_entry.inode, type, name, dir_entry.rec_len);
         report_file(dir_entry.inode, type, name);
