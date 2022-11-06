@@ -6,21 +6,32 @@
 #include <solution.h>
 
 
-static int copy_direct_block(int img, unsigned block_size, unsigned block_nr, char *buf,  int out){
+static int copy_direct_block(int img, unsigned block_size, unsigned block_nr, char *buf,  int out,
+                             const unsigned file_size, unsigned *size_copied){
+    unsigned size;
+    if ((file_size - *size_copied) > block_size){
+        size = block_size;
+    }
+    else{
+        size = file_size - *size_copied;
+    }
+
     off_t offset = block_nr * block_size;
-    int res = pread(img, buf, block_size, offset);
+    int res = pread(img, buf, size, offset);
     if (res < 0){
         return -errno;
     }
-    res = pwrite(out, buf, block_size, 0);
+    res = pwrite(out, buf, size, *size_copied);
     if(res < 0){
         return -errno;
     }
+    *size_copied += size;
     return 0;
 }
 
 
-static int copy_indirect_block(int img, unsigned block_size, unsigned block_nr, unsigned *indir_buf,  int out){
+static int copy_indirect_block(int img, unsigned block_size, unsigned block_nr, unsigned *indir_buf,  int out,
+                               const unsigned file_size, unsigned *size_copied){
     char *buf = calloc(1, block_size);
     off_t offset = block_nr * block_size;
     int res = pread(img, indir_buf, block_size, offset);
@@ -31,7 +42,7 @@ static int copy_indirect_block(int img, unsigned block_size, unsigned block_nr, 
         if(indir_buf[i] == 0){
             break;
         }
-        int copy_result = copy_direct_block(img, block_size, indir_buf[i], buf, out);
+        int copy_result = copy_direct_block(img, block_size, indir_buf[i], buf, out, file_size, size_copied);
         if(copy_result < 0){
             free(buf);
             return copy_result;
@@ -42,7 +53,8 @@ static int copy_indirect_block(int img, unsigned block_size, unsigned block_nr, 
 }
 
 
-static int copy_double_indirect_block(int img, unsigned block_size, unsigned block_nr, unsigned *double_indir_buf,  int out){
+static int copy_double_indirect_block(int img, unsigned block_size, unsigned block_nr, unsigned *double_indir_buf,
+                                      int out, const unsigned file_size, unsigned *size_copied){
     unsigned *indir_buf = calloc(1, block_size);
     off_t offset = block_nr * block_size;
     int res = pread(img, double_indir_buf, block_size, offset);
@@ -50,7 +62,7 @@ static int copy_double_indirect_block(int img, unsigned block_size, unsigned blo
         return -errno;
     }
     for (unsigned i = 0; i < (unsigned)block_size / sizeof(unsigned); ++i){
-        int copy_result = copy_indirect_block(img, block_size, double_indir_buf[i], indir_buf, out);
+        int copy_result = copy_indirect_block(img, block_size, double_indir_buf[i], indir_buf, out, file_size, size_copied);
         if(copy_result < 0){
             free(indir_buf);
             return copy_result;
@@ -76,14 +88,17 @@ static int copy_inode(int img, unsigned block_size, int out, off_t inode_offset)
     indir_buf = calloc(1, block_size);
     double_indir_buf = calloc(1, block_size);
 
+    const unsigned file_size = inode.i_size;
+    unsigned size_copied = 0;
+
 
     for (int i = 0; i < EXT2_N_BLOCKS; ++i){
-        if (inode.i_block[i] == 0){
+        if ((inode.i_block[i] == 0) || (size_copied == file_size)){
             break;
         }
 
         if(i < EXT2_NDIR_BLOCKS){
-            copy_result = copy_direct_block(img, block_size, inode.i_block[i], buf, out);
+            copy_result = copy_direct_block(img, block_size, inode.i_block[i], buf, out, file_size, &size_copied);
             if (copy_result < 0){
                 free(indir_buf);
                 free(double_indir_buf);
@@ -93,7 +108,7 @@ static int copy_inode(int img, unsigned block_size, int out, off_t inode_offset)
 
         }
         else if (i == EXT2_IND_BLOCK){
-            copy_result = copy_indirect_block(img, block_size, inode.i_block[i], indir_buf, out);
+            copy_result = copy_indirect_block(img, block_size, inode.i_block[i], indir_buf, out, file_size, &size_copied);
             if (copy_result < 0){
                 free(indir_buf);
                 free(double_indir_buf);
@@ -102,7 +117,7 @@ static int copy_inode(int img, unsigned block_size, int out, off_t inode_offset)
             }
         }
         else if (i == EXT2_DIND_BLOCK){
-            copy_result = copy_double_indirect_block(img, block_size, inode.i_block[i], double_indir_buf, out);
+            copy_result = copy_double_indirect_block(img, block_size, inode.i_block[i], double_indir_buf, out, file_size, &size_copied);
             if (copy_result < 0){
                 free(indir_buf);
                 free(double_indir_buf);
