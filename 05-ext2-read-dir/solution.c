@@ -9,7 +9,7 @@ static int read_direct_block(int img, unsigned block_size, unsigned block_nr){
     struct ext2_dir_entry_2 dir_entry;
     off_t beginning_offset = block_size * block_nr;
     off_t current_offset = block_size * block_nr;
-    while(current_offset < beginning_offset + block_size){
+    while((current_offset < beginning_offset + block_size) && dir_entry.inode != 0){
         int res = pread(img, &dir_entry, sizeof(dir_entry), current_offset);
         if (res < 0){
             return -errno;
@@ -23,7 +23,7 @@ static int read_direct_block(int img, unsigned block_size, unsigned block_nr){
         name = calloc(256, sizeof(char));
         sprintf(name, "%s", dir_entry.name);
 
-//        printf("inode: %u, type: %c, name: %s\n", dir_entry.inode, type, name);
+//        printf("inode: %u, type: %c, name: %s, len: %u\n", dir_entry.inode, type, name, dir_entry.rec_len);
         report_file(dir_entry.inode, type, name);
         free(name);
         current_offset += dir_entry.rec_len;
@@ -75,11 +75,9 @@ static int parse_content_of_inode_as_dir(int img, unsigned block_size, off_t ino
         return -errno;
     }
 
-    char *buf = {0};
     unsigned *indir_buf = {0};
     unsigned *double_indir_buf = {0};
 
-    buf = calloc(1, block_size);
     indir_buf = calloc(1, block_size);
     double_indir_buf = calloc(1, block_size);
 
@@ -94,7 +92,6 @@ static int parse_content_of_inode_as_dir(int img, unsigned block_size, off_t ino
             if (read_result < 0){
                 free(indir_buf);
                 free(double_indir_buf);
-                free(buf);
                 return read_result;
             }
 
@@ -104,7 +101,6 @@ static int parse_content_of_inode_as_dir(int img, unsigned block_size, off_t ino
             if (read_result < 0){
                 free(indir_buf);
                 free(double_indir_buf);
-                free(buf);
                 return read_result;
             }
         }
@@ -113,20 +109,17 @@ static int parse_content_of_inode_as_dir(int img, unsigned block_size, off_t ino
             if (read_result < 0){
                 free(indir_buf);
                 free(double_indir_buf);
-                free(buf);
                 return read_result;
             }
         }
         else{
             free(indir_buf);
             free(double_indir_buf);
-            free(buf);
             return 0;
         }
     }
     free(indir_buf);
     free(double_indir_buf);
-    free(buf);
     return 0;
 }
 
