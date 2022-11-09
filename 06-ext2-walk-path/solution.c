@@ -193,7 +193,7 @@ static int find_inode_number_by_path(int img, unsigned block_size, const char *p
             return -ENOENT;
         }
     }
-    return 0;
+    return -ENOENT;
 }
 
 static int copy_direct_block(int img, unsigned block_size, unsigned block_nr, char *buf,  int out,
