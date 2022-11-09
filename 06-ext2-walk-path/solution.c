@@ -66,7 +66,7 @@ static int find_entry_direct_block(int img, unsigned block_size, unsigned block_
         unsigned name_len = strlen(name);
 
         if (strncmp(name, entry_name, name_len) == 0){
-            if(dir_entry.file_type != ext2_filetype){
+            if((dir_entry.file_type != ext2_filetype) && (ext2_filetype == EXT2_FT_DIR)){
                 free(entry_name);
                 return -ENOTDIR;
             }
