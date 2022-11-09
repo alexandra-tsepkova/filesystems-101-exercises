@@ -46,7 +46,6 @@ static int find_entry_direct_block(int img, unsigned block_size, unsigned block_
     struct ext2_dir_entry_2 dir_entry = {};
     off_t beginning_offset = block_size * block_nr;
     off_t current_offset = block_size * block_nr;
-    short found = 0;
     while(current_offset < beginning_offset + block_size){
 
         int res = pread(img, &dir_entry, sizeof(dir_entry), current_offset);
@@ -66,18 +65,19 @@ static int find_entry_direct_block(int img, unsigned block_size, unsigned block_
         unsigned name_len = strlen(name);
 
         if (strncmp(name, entry_name, name_len) == 0){
+            free(entry_name);
             if((dir_entry.file_type != ext2_filetype) && (ext2_filetype == EXT2_FT_DIR)){
-                free(entry_name);
                 return -ENOTDIR;
+            } else if ((dir_entry.file_type == EXT2_FT_DIR) && (ext2_filetype != EXT2_FT_DIR)){
+                return -ENOENT;
             }
-            found = 1;
             *file_inode_nr = dir_entry.inode;
+            return 0;
         }
         current_offset += dir_entry.rec_len;
         free(entry_name);
     }
-    if (found == 1) return 0;
-    else return 1;
+    return 1;
 }
 
 static int find_entry_indirect_block(int img, unsigned block_size, unsigned block_nr, unsigned ext2_filetype, const char *path, int *file_inode_nr, unsigned *indir_buf){
@@ -143,6 +143,7 @@ static int find_inode_number_by_path(int img, unsigned block_size, const char *p
             }
             else if(find_result == 0){
                 if(remaining_path_len != 0) {
+                    if (remaining_path_len == 1) return -ENOTDIR;
                     char *remaining_path = get_remaining_path(path + 1);
                     off_t inode_offset = 0;
                     find_inode_offset(img, super_block, *file_inode_nr, &inode_offset);
@@ -161,6 +162,7 @@ static int find_inode_number_by_path(int img, unsigned block_size, const char *p
             }
             else if(find_result == 0){
                 if(remaining_path_len != 0) {
+                    if (remaining_path_len == 1) return -ENOTDIR;
                     char *remaining_path = get_remaining_path(path + 1);
                     off_t inode_offset = 0;
                     find_inode_offset(img, super_block, *file_inode_nr, &inode_offset);
@@ -179,6 +181,7 @@ static int find_inode_number_by_path(int img, unsigned block_size, const char *p
             }
             else if(find_result == 0){
                 if(remaining_path_len != 0) {
+                    if (remaining_path_len == 1) return -ENOTDIR;
                     char *remaining_path = get_remaining_path(path + 1);
                     off_t inode_offset = 0;
                     find_inode_offset(img, super_block, *file_inode_nr, &inode_offset);
