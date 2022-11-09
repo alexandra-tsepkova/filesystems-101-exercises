@@ -134,7 +134,7 @@ static int find_inode_number_by_path(int img, unsigned block_size, const char *p
 
     for (int i = 0; i < EXT2_N_BLOCKS; ++i){
         if (inode.i_block[i] == 0){
-            break;
+            return -ENOENT;
         }
 
         if(i < EXT2_NDIR_BLOCKS){
@@ -193,7 +193,7 @@ static int find_inode_number_by_path(int img, unsigned block_size, const char *p
             return -ENOENT;
         }
     }
-    return -ENOENT;
+    return 0;
 }
 
 static int copy_direct_block(int img, unsigned block_size, unsigned block_nr, char *buf,  int out,
