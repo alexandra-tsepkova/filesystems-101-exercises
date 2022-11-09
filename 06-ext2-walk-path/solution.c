@@ -93,7 +93,7 @@ static int find_entry_indirect_block(int img, unsigned block_size, unsigned bloc
             return -ENOENT;
         }
         find_result = find_entry_direct_block(img, block_size, indir_buf[i], ext2_filetype, path, file_inode_nr);
-        if(find_result < 0){
+        if(find_result <= 0){
             return find_result;
         }
     }
@@ -110,7 +110,7 @@ static int find_entry_double_indirect_block(int img, unsigned block_size, unsign
     }
     for (unsigned i = 0; i < (unsigned)block_size / sizeof(unsigned); ++i){
         find_result = find_entry_indirect_block(img, block_size, double_indir_buf[i], ext2_filetype, path, file_inode_nr, indir_buf);
-        if(find_result < 0){
+        if(find_result <= 0){
             free(indir_buf);
             return find_result;
         }
