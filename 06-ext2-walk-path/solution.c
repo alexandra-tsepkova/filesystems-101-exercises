@@ -129,7 +129,7 @@ static int find_inode_number_by_path(int img, unsigned block_size, const char *p
     char* entry_name = get_entry_name(path, &remaining_path_len);
     free(entry_name);
 
-    unsigned entry_type = remaining_path_len == 0 ? EXT2_FT_REG_FILE : EXT2_FT_DIR;
+    unsigned entry_type = remaining_path_len == 0 ? EXT2_FT_UNKNOWN : EXT2_FT_DIR;
 
     for (int i = 0; i < EXT2_N_BLOCKS; ++i){
         if (inode.i_block[i] == 0){
