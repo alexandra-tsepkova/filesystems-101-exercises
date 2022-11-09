@@ -269,14 +269,10 @@ static int copy_inode(int img, unsigned block_size, int out, off_t inode_offset)
         return -errno;
     }
 
-    char *buf = {0};
-    unsigned *indir_buf = {0};
-    unsigned *double_indir_buf = {0};
+    char *buf;
+    unsigned *indir_buf;
+    unsigned *double_indir_buf;
     int copy_result = 0;
-
-    buf = calloc(1, block_size);
-    indir_buf = calloc(1, block_size);
-    double_indir_buf = calloc(1, block_size);
 
     const unsigned file_size = inode.i_size;
     unsigned size_copied = 0;
@@ -288,43 +284,34 @@ static int copy_inode(int img, unsigned block_size, int out, off_t inode_offset)
         }
 
         if(i < EXT2_NDIR_BLOCKS){
+            buf = calloc(1, block_size);
             copy_result = copy_direct_block(img, block_size, inode.i_block[i], buf, out, file_size, &size_copied);
+            free(buf);
             if (copy_result < 0){
-                free(indir_buf);
-                free(double_indir_buf);
-                free(buf);
                 return copy_result;
             }
 
         }
         else if (i == EXT2_IND_BLOCK){
+            indir_buf = calloc(1, block_size);
             copy_result = copy_indirect_block(img, block_size, inode.i_block[i], indir_buf, out, file_size, &size_copied);
+            free(indir_buf);
             if (copy_result < 0){
-                free(indir_buf);
-                free(double_indir_buf);
-                free(buf);
                 return copy_result;
             }
         }
         else if (i == EXT2_DIND_BLOCK){
+            double_indir_buf = calloc(1, block_size);
             copy_result = copy_double_indirect_block(img, block_size, inode.i_block[i], double_indir_buf, out, file_size, &size_copied);
+            free(double_indir_buf);
             if (copy_result < 0){
-                free(indir_buf);
-                free(double_indir_buf);
-                free(buf);
                 return copy_result;
             }
         }
         else{
-            free(indir_buf);
-            free(double_indir_buf);
-            free(buf);
             return 0;
         }
     }
-    free(indir_buf);
-    free(double_indir_buf);
-    free(buf);
     return 0;
 }
 
