@@ -62,8 +62,8 @@ static int find_entry_direct_block(int img, unsigned block_size, unsigned block_
             continue;
         }
 
-        char name[256];
-        memset(name, '\0', 256 * sizeof(char));
+        char name[PATH_MAX];
+        memset(name, '\0', PATH_MAX * sizeof(char));
         snprintf(name, dir_entry.name_len + 1, "%s", dir_entry.name);
 
         unsigned remaining_path_len = strlen(path);
