@@ -57,11 +57,6 @@ static int find_entry_direct_block(int img, unsigned block_size, unsigned block_
             return -ENOENT;
         }
 
-        if (dir_entry.file_type != ext2_filetype) {
-            current_offset += dir_entry.rec_len;
-            continue;
-        }
-
         char name[PATH_MAX];
         memset(name, '\0', PATH_MAX * sizeof(char));
         snprintf(name, dir_entry.name_len + 1, "%s", dir_entry.name);
@@ -71,6 +66,10 @@ static int find_entry_direct_block(int img, unsigned block_size, unsigned block_
         unsigned name_len = strlen(name);
 
         if (strncmp(name, entry_name, name_len) == 0){
+            if(dir_entry.file_type != ext2_filetype){
+                free(entry_name);
+                return -ENOTDIR;
+            }
             found = 1;
             *file_inode_nr = dir_entry.inode;
         }
