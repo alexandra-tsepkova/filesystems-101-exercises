@@ -13,9 +13,10 @@ char *get_entry_name (const char *path, unsigned *remaining_path_len){
     int path_len = strlen(path);
     char path_copy[path_len + 1];
     memcpy(path_copy, path, path_len + 1);
-    char *entry = strtok(path_copy, "/");
-    *remaining_path_len -= strlen(entry);
-    *remaining_path_len -= 1;
+    char *local_entry = strtok(path_copy, "/");
+    char *entry = calloc(strlen(local_entry) + 1, sizeof(char));
+    strcpy(entry, local_entry);
+    *remaining_path_len -= (strlen(entry) + 1);
     return entry;
 }
 
@@ -42,7 +43,7 @@ static int find_inode_offset(int img, struct ext2_super_block super_block, int i
 }
 
 static int find_entry_direct_block(int img, unsigned block_size, unsigned block_nr, unsigned ext2_filetype, const char *path, int *file_inode_nr){
-    struct ext2_dir_entry_2 dir_entry;
+    struct ext2_dir_entry_2 dir_entry = {};
     off_t beginning_offset = block_size * block_nr;
     off_t current_offset = block_size * block_nr;
     short found = 0;
@@ -61,21 +62,20 @@ static int find_entry_direct_block(int img, unsigned block_size, unsigned block_
             continue;
         }
 
-        char *name = {0};
-        name = calloc(256, sizeof(char));
+        char name[256];
         memset(name, '\0', 256 * sizeof(char));
         snprintf(name, dir_entry.name_len + 1, "%s", dir_entry.name);
 
         unsigned remaining_path_len = strlen(path);
-        const char* entry_name = get_entry_name(path, &remaining_path_len);
-//        printf("inode: %u, type: %d, name: %s\n\n", dir_entry.inode, ext2_filetype, name);
+        char* entry_name = get_entry_name(path, &remaining_path_len);
+        unsigned name_len = strlen(name);
 
-        if (strcmp(name, entry_name) == 0){
+        if (strncmp(name, entry_name, name_len) == 0){
             found = 1;
             *file_inode_nr = dir_entry.inode;
         }
-        free(name);
         current_offset += dir_entry.rec_len;
+        free(entry_name);
     }
     if (found == 1) return 0;
     else return 1;
@@ -126,19 +126,11 @@ static int find_inode_number_by_path(int img, unsigned block_size, const char *p
     if (read_result < 0){
         return -errno;
     }
-    int find_result;
-
-    unsigned *indir_buf = {0};
-    unsigned *double_indir_buf = {0};
-
-    indir_buf = calloc(1, block_size);
-    double_indir_buf = calloc(1, block_size);
-
     unsigned remaining_path_len = strlen(path);
     char* entry_name = get_entry_name(path, &remaining_path_len);
+    free(entry_name);
 
     unsigned entry_type = remaining_path_len == 0 ? EXT2_FT_REG_FILE : EXT2_FT_DIR;
-    (void)entry_name;
 
     for (int i = 0; i < EXT2_N_BLOCKS; ++i){
         if (inode.i_block[i] == 0){
@@ -146,10 +138,8 @@ static int find_inode_number_by_path(int img, unsigned block_size, const char *p
         }
 
         if(i < EXT2_NDIR_BLOCKS){
-            find_result = find_entry_direct_block(img, block_size, inode.i_block[i], entry_type, path, file_inode_nr);
+            int find_result = find_entry_direct_block(img, block_size, inode.i_block[i], entry_type, path, file_inode_nr);
             if (find_result < 0){
-                free(indir_buf);
-                free(double_indir_buf);
                 return find_result;
             }
             else if(find_result == 0){
@@ -164,10 +154,10 @@ static int find_inode_number_by_path(int img, unsigned block_size, const char *p
             }
         }
         else if (i == EXT2_IND_BLOCK){
-            find_result = find_entry_indirect_block(img, block_size, inode.i_block[i], entry_type, path, file_inode_nr, indir_buf);
+            unsigned *indir_buf = calloc(1, block_size);
+            int find_result = find_entry_indirect_block(img, block_size, inode.i_block[i], entry_type, path, file_inode_nr, indir_buf);
+            free(indir_buf);
             if (find_result < 0){
-                free(indir_buf);
-                free(double_indir_buf);
                 return find_result;
             }
             else if(find_result == 0){
@@ -182,11 +172,10 @@ static int find_inode_number_by_path(int img, unsigned block_size, const char *p
             }
         }
         else if (i == EXT2_DIND_BLOCK){
-
-            find_result = find_entry_double_indirect_block(img, block_size, inode.i_block[i], entry_type, path, file_inode_nr, double_indir_buf);
+            unsigned *double_indir_buf = calloc(1, block_size);
+            int find_result = find_entry_double_indirect_block(img, block_size, inode.i_block[i], entry_type, path, file_inode_nr, double_indir_buf);
+            free(double_indir_buf);
             if (find_result < 0){
-                free(indir_buf);
-                free(double_indir_buf);
                 return find_result;
             }
             else if(find_result == 0){
@@ -201,13 +190,9 @@ static int find_inode_number_by_path(int img, unsigned block_size, const char *p
             }
         }
         else{
-            free(indir_buf);
-            free(double_indir_buf);
             return -ENOENT;
         }
     }
-    free(indir_buf);
-    free(double_indir_buf);
     return 0;
 }
 
@@ -361,7 +346,8 @@ int dump_file(int img, const char *path, int out)
 
     int path_len = strlen(path);
     char path_copy[path_len + 1];
-    memcpy(path_copy, path, path_len + 1);
+    memset(path_copy, '\0', (path_len + 1) * sizeof(char));
+    snprintf(path_copy, path_len + 1, "%s", path);
 
     // find file inode by path
 
