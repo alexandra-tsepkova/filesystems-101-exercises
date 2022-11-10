@@ -63,17 +63,18 @@ static int find_entry_direct_block(int img, unsigned block_size, unsigned block_
 
         unsigned remaining_path_len = strlen(path);
         char* entry_name = get_entry_name(path, &remaining_path_len);
+        unsigned entry_name_len = strlen(entry_name);
         unsigned name_len = strlen(name);
 
-        if (strncmp(name, entry_name, name_len) == 0){
-            free(entry_name);
-            if((dir_entry.file_type != ext2_filetype) && (ext2_filetype == EXT2_FT_DIR)){
-                return -ENOTDIR;
-            } else if ((dir_entry.file_type == EXT2_FT_DIR) && (ext2_filetype != EXT2_FT_DIR)){
-                return -ENOENT;
+        if (name_len == entry_name_len){
+            if (strncmp(name, entry_name, name_len) == 0){
+                free(entry_name);
+                if((dir_entry.file_type != ext2_filetype) && (ext2_filetype == EXT2_FT_DIR)){
+                 return -ENOTDIR;
+                }
+                *file_inode_nr = dir_entry.inode;
+                return 0;
             }
-            *file_inode_nr = dir_entry.inode;
-            return 0;
         }
         current_offset += dir_entry.rec_len;
         free(entry_name);
