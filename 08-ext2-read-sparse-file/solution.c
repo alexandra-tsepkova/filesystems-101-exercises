@@ -16,7 +16,7 @@ static int copy_direct_block(int img, unsigned block_size, unsigned block_nr, ch
         size = file_size - *size_copied;
     }
     if (block_nr == 0){
-        memset(buf, '0', size);
+        memset(buf, 0, size);
 
     }
     else {
