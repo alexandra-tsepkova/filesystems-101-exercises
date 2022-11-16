@@ -17,7 +17,6 @@ static int copy_direct_block(int img, unsigned block_size, unsigned block_nr, ch
     }
     if (block_nr == 0){
         memset(buf, 0, size);
-
     }
     else {
         off_t offset = block_nr * block_size;
@@ -44,9 +43,6 @@ static int copy_indirect_block(int img, unsigned block_size, unsigned block_nr, 
         return -errno;
     }
     for (unsigned i = 0; i < (unsigned)block_size / sizeof(unsigned); ++i){
-        if(indir_buf[i] == 0){
-            break;
-        }
         int copy_result = copy_direct_block(img, block_size, indir_buf[i], buf, out, file_size, size_copied);
         if(copy_result < 0){
             free(buf);
