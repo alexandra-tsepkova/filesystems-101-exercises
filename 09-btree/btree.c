@@ -56,6 +56,23 @@ void _free_btree_node(struct btree_node *node) {
     free(node);
 }
 
+// Debugging
+
+void print_node(struct btree_node *node) {
+    printf("-----\\\nnode address: %p\n", (void *) node);
+    printf("keys amount: %d\n", node->keys_size);
+    for (int i = 0; i < node->keys_size; ++i) {
+        printf("%d ", node->keys[i]);
+    }
+    printf("\nis leaf: %d\n", node->is_leaf);
+    if (!node->is_leaf) {
+        for (int i = 0; i < node->keys_size + 1; ++i) {
+            printf("%p ", (void *) node->edges[i]);
+        }
+    }
+    printf("\n-----/\n");
+}
+
 // BTree Nodes operations
 
 struct _find_result {
@@ -461,9 +478,13 @@ void btree_delete(struct btree *t, int key) {
                 // Init left and right
                 if (find_result.index >= 0) {
                     left = current_node->edges[find_result.index];
+                } else {
+                    left = NULL;
                 }
                 if (find_result.index < current_node->keys_size - 1) {
                     right = current_node->edges[find_result.index + 2];
+                } else {
+                    right = NULL;
                 }
 
                 if (left != NULL && left->keys_size > _min_keys_size(t)) {
@@ -536,8 +557,6 @@ void btree_delete(struct btree *t, int key) {
         }
     }
 
-    struct _find_result find_result = _find_key_index(current_node, current_key);
-    if (!find_result.is_exact_match) return;
     _delete_key_from_node(current_node, current_key);
 }
 
