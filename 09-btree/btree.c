@@ -321,11 +321,8 @@ void btree_insert(struct btree *t, int key) {
     struct _route route = _build_route(t, key);
 
     if (route.is_exact_match) {
-        printf(
-                "Can't insert key %d into btree. Already exists in node with address %p",
-                key, (void *) route.elements[route.length - 1].node
-        );
-        exit(-1);
+        _free_route(route);
+         return;
     }
 
     int current_key = key;
@@ -535,6 +532,8 @@ void btree_delete(struct btree *t, int key) {
         }
     }
 
+    struct _find_result find_result = _find_key_index(current_node, current_key);
+    if (!find_result.is_exact_match) return;
     _delete_key_from_node(current_node, current_key);
 }
 
