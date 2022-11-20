@@ -438,6 +438,10 @@ struct btree_node *_merge(struct btree_node *left, struct btree_node *right, str
 }
 
 void btree_delete(struct btree *t, int key) {
+    if (!btree_contains(t, key)) {
+        return;
+    }
+
     struct btree_node *current_node = t->root_node;
     int current_key = key;
 
