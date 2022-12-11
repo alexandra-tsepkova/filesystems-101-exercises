@@ -129,6 +129,7 @@ func (s *Server) ParallelHash(
 		s.lock.Unlock()
 
 		current_data := req.Data[i]
+		current_index := i
 
 		wg.Go(ctx, func(ctx context.Context) (err error) {
 			resp, err := current_backend.Hash(ctx, &hashpb.HashReq{Data: current_data})
@@ -136,7 +137,7 @@ func (s *Server) ParallelHash(
 				return err
 			}
 			s.lock.Lock()
-			hashes[i] = resp.Hash
+			hashes[current_index] = resp.Hash
 			s.lock.Unlock()
 			return nil
 		})
