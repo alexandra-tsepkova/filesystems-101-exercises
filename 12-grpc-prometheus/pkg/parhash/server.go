@@ -97,8 +97,8 @@ func New(conf Config) *Server {
 func (s *Server) Start(ctx context.Context) (err error) {
 	defer func() { err = errors.Wrap(err, "Start()") }()
 
-	prometheus.MustRegister(s.nr_nr_requests)
-	prometheus.MustRegister(s.subquery_durations)
+	s.conf.Prom.MustRegister(s.nr_nr_requests)
+	s.conf.Prom.MustRegister(s.subquery_durations)
 
 	ctx, s.stop = context.WithCancel(ctx)
 
