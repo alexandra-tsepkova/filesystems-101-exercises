@@ -77,7 +77,7 @@ type Server struct {
 func New(conf Config) *Server {
 	var counter_opts prometheus.CounterOpts
 	counter_opts.Namespace = "parhash"
-	counter_opts.Name = "nr_nr_requests"
+	counter_opts.Name = "nr_requests"
 
 	var histogram_opts prometheus.HistogramOpts
 	histogram_opts.Namespace = "parhash"
