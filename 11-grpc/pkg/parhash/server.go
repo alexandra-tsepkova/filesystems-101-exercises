@@ -146,5 +146,5 @@ func (s *Server) ParallelHash(
 		log.Fatalf("failed to hash: %v", err)
 	}
 
-	return nil, nil
+	return &parhashpb.ParHashResp{Hashes: hashes}, nil
 }
