@@ -128,8 +128,10 @@ func (s *Server) ParallelHash(
 		s.available_backend = (s.available_backend + 1) % len(backends)
 		s.lock.Unlock()
 
+		current_data := req.Data[i]
+
 		wg.Go(ctx, func(ctx context.Context) (err error) {
-			resp, err := current_backend.Hash(ctx, &hashpb.HashReq{Data: req.Data[i]})
+			resp, err := current_backend.Hash(ctx, &hashpb.HashReq{Data: current_data})
 			if err != nil {
 				return err
 			}
