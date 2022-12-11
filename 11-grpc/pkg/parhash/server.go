@@ -124,17 +124,18 @@ func (s *Server) ParallelHash(
 	)
 	for i := range hashes {
 		s.lock.Lock()
-		current_backend := s.available_backend
+		current_backend := backends[s.available_backend]
 		s.available_backend = (s.available_backend + 1) % len(backends)
 		s.lock.Unlock()
 
 		wg.Go(ctx, func(ctx context.Context) (err error) {
-			resp, err := backends[current_backend].Hash(ctx, &hashpb.HashReq{Data: req.Data[i]})
+			resp, err := current_backend.Hash(ctx, &hashpb.HashReq{Data: req.Data[i]})
 			if err != nil {
 				return err
 			}
-
+			s.lock.Lock()
 			hashes[i] = resp.Hash
+			s.lock.Unlock()
 			return nil
 		})
 	}
